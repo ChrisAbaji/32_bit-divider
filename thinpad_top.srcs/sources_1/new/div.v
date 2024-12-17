@@ -71,7 +71,7 @@ module div(
                         if (div_signed) begin
                             dividend_sign <= x[31];
                             divisor_sign <= y[31];
-                            result_sign <= y[31] ^ x[31];   // 结果符号位非阻塞赋值
+                            result_sign <= y[31] ^ x[31]; // 结果符号位非阻塞赋值
                             if (x == 32'h80000000 && y == 32'hFFFFFFFF) begin
                                 state <= OVERFLOW;
                             end else begin
