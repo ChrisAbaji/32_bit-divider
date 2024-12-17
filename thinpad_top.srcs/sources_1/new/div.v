@@ -38,7 +38,7 @@ module div(
     reg [5:0] bit;                  // 计数器
     reg [1:0] state;
 
-    localparam IDLE = 2'b00, DIVIDE = 2'b01, DONE = 2'b10, OVERFLOW = 2'b11;
+    localparam IDLE = 2'b00, DIVIDE = 2'b01, DONE = 2'b10;
 
     // 符号处理
     reg dividend_sign;
@@ -72,34 +72,35 @@ module div(
                             dividend_sign <= x[31];
                             divisor_sign <= y[31];
                             result_sign <= y[31] ^ x[31]; // 结果符号位非阻塞赋值
-                            if (x == 32'h80000000 && y == 32'hFFFFFFFF) begin
-                                state <= OVERFLOW;
-                            end else begin
-                                // 将被除数转为正数并放入低32位
-                                remainder_quotient <= {32'b0, (x[31] ? (~x + 1) : x)};
-                                divisor <= y[31] ? (~y + 1) : y;
-                                state <= DIVIDE;
-                            end
+                            
+                            // 将被除数转为正数并放入低32位
+                            remainder_quotient <= {32'b0, x[31] ? (~x + 1) : x};
+                            divisor <= y[31] ? (~y + 1) : y;
                         end else begin
                             remainder_quotient <= {32'b0, x};
                             divisor <= y;
-                            state <= DIVIDE;
                         end
-
-                        // state <= DIVIDE;
+                        state <= DIVIDE;
                     end
                 end
 
                 DIVIDE: begin
                     if (bit > 0) begin
-                        // 被除数左移一位
-                        if (remainder_quotient[62:31] >= divisor) begin
-                            remainder_quotient <= {remainder_quotient[62:31] - divisor, remainder_quotient[30:0], 1'b1};
-                        end else begin
-                            remainder_quotient <= {remainder_quotient[62:31], remainder_quotient[30:0], 1'b0};
+                        // 被除数左移2位  尽可能使用拼接而非移位操作
+                        if ({2'b0,remainder_quotient[61:30]} >= {2'b0,divisor} + {1'b0,divisor,1'b0}) begin
+                            remainder_quotient <= {remainder_quotient[61:30] - divisor - {divisor[30:0],1'b0}, remainder_quotient[29:0], 2'b11};
+                        end 
+                        else if ({1'b0,remainder_quotient[61:30]} >= {divisor,1'b0}) begin
+                            remainder_quotient <= {remainder_quotient[61:30] - {divisor[30:0],1'b0}, remainder_quotient[29:0], 2'b10};
                         end
-                        bit <= bit - 1;
-                        if (bit == 1) begin
+                        else if (remainder_quotient[61:30] >= divisor) begin
+                            remainder_quotient <= {remainder_quotient[61:30] - divisor, remainder_quotient[29:0], 2'b01};
+                        end
+                        else begin
+                            remainder_quotient <= {remainder_quotient[61:30], remainder_quotient[29:0], 2'b00};
+                        end
+                        bit <= bit - 2;
+                        if (bit == 2) begin
                             state <= DONE;
                         end
                     end
@@ -121,19 +122,10 @@ module div(
                     // remainder_quotient <= 64'b0;    
                 end
 
-                OVERFLOW: begin
-                    s <= 32'h7FFFFFFF;
-                    r <= 32'b0;
-                    complete <= 1'b1;
-                    state <= IDLE;
-                end
             endcase
             if (complete) begin
                 complete <= 1'b0;
             end
         end
     end
-
-    
-
 endmodule
