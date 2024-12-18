@@ -86,21 +86,65 @@ module div(
 
                 DIVIDE: begin
                     if (bit > 0) begin
-                        // 被除数左移2位  尽可能使用拼接而非移位操作
-                        if ({2'b0,remainder_quotient[61:30]} >= {2'b0,divisor} + {1'b0,divisor,1'b0}) begin
-                            remainder_quotient <= {remainder_quotient[61:30] - divisor - {divisor[30:0],1'b0}, remainder_quotient[29:0], 2'b11};
-                        end 
-                        else if ({1'b0,remainder_quotient[61:30]} >= {divisor,1'b0}) begin
-                            remainder_quotient <= {remainder_quotient[61:30] - {divisor[30:0],1'b0}, remainder_quotient[29:0], 2'b10};
+                        // 被除数左移4位  尽可能使用拼接而非移位操作
+                        if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0}) begin
+                            if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {2'b0,divisor,2'b0}) begin
+                                if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {2'b0,divisor,2'b0} + {3'b0,divisor,1'b0}) begin
+                                    if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {2'b0,divisor,2'b0} + {3'b0,divisor,1'b0} + {4'b0,divisor}) begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,2'b0} - {divisor,1'b0} - divisor, remainder_quotient[27:0], 4'b1111};
+                                    end else begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,2'b0} - {divisor,1'b0}, remainder_quotient[27:0], 4'b1110};
+                                    end
+                                end else begin
+                                    if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {2'b0,divisor,2'b0} + {4'b0,divisor}) begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,2'b0} - divisor, remainder_quotient[27:0], 4'b1101};
+                                    end else begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,2'b0}, remainder_quotient[27:0], 4'b1100};
+                                    end
+                                end
+                            end else begin
+                                if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {3'b0,divisor,1'b0}) begin
+                                    if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {3'b0,divisor,1'b0} + {4'b0,divisor}) begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,1'b0} - divisor, remainder_quotient[27:0], 4'b1011};
+                                    end else begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - {divisor,1'b0}, remainder_quotient[27:0], 4'b1010};
+                                    end
+                                end else begin
+                                    if ({4'b0,remainder_quotient[59:28]} >= {1'b0,divisor,3'b0} + {4'b0,divisor}) begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0} - divisor, remainder_quotient[27:0], 4'b1001};
+                                    end else begin
+                                        remainder_quotient <= {remainder_quotient[59:28] - {divisor,3'b0}, remainder_quotient[27:0], 4'b1000};
+                                    end
+                                end
+                            end
+                        end else if ({4'b0,remainder_quotient[59:28]} >= {2'b0,divisor,2'b0}) begin
+                            if ({4'b0,remainder_quotient[59:28]} >= {2'b0,divisor,2'b0} + {3'b0,divisor,1'b0}) begin
+                                if ({4'b0,remainder_quotient[59:28]} >= {2'b0,divisor,2'b0} + {3'b0,divisor,1'b0} + {4'b0,divisor}) begin
+                                    remainder_quotient <= {remainder_quotient[59:28] - {divisor,2'b0} - {divisor,1'b0} - divisor, remainder_quotient[27:0], 4'b0111};
+                                end else begin
+                                    remainder_quotient <= {remainder_quotient[59:28] - {divisor,2'b0} - {divisor,1'b0}, remainder_quotient[27:0], 4'b0110};
+                                end
+                            end else begin
+                                if ({4'b0,remainder_quotient[59:28]} >= {2'b0,divisor,2'b0} + {4'b0,divisor}) begin
+                                    remainder_quotient <= {remainder_quotient[59:28] - {divisor,2'b0} - divisor, remainder_quotient[27:0], 4'b0101};
+                                end else begin
+                                    remainder_quotient <= {remainder_quotient[59:28] - {divisor,2'b0}, remainder_quotient[27:0], 4'b0100};
+                                end
+                            end
+                        end else if ({4'b0,remainder_quotient[59:28]} >= {3'b0,divisor,1'b0}) begin
+                            if ({4'b0,remainder_quotient[59:28]} >= {3'b0,divisor,1'b0} + {4'b0,divisor}) begin
+                                remainder_quotient <= {remainder_quotient[59:28] - {divisor,1'b0} - divisor, remainder_quotient[27:0], 4'b0011};
+                            end else begin
+                                remainder_quotient <= {remainder_quotient[59:28] - {divisor,1'b0}, remainder_quotient[27:0], 4'b0010};
+                            end
+                        end else if ({4'b0,remainder_quotient[59:28]} >= {4'b0,divisor}) begin
+                            remainder_quotient <= {remainder_quotient[59:28] - divisor, remainder_quotient[27:0], 4'b0001};
+                        end else begin
+                            remainder_quotient <= {remainder_quotient[59:28], remainder_quotient[27:0], 4'b0000};
                         end
-                        else if (remainder_quotient[61:30] >= divisor) begin
-                            remainder_quotient <= {remainder_quotient[61:30] - divisor, remainder_quotient[29:0], 2'b01};
-                        end
-                        else begin
-                            remainder_quotient <= {remainder_quotient[61:30], remainder_quotient[29:0], 2'b00};
-                        end
-                        bit <= bit - 2;
-                        if (bit == 2) begin
+                        
+                        bit <= bit - 4;
+                        if (bit == 4) begin
                             state <= DONE;
                         end
                     end
